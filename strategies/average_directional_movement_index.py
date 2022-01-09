@@ -1,12 +1,12 @@
 import sys
+
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent))
 
-from template_strategy import BaseStrategy
+from base_strategy import BaseStrategy
 from freqtrade.strategy import IntParameter
 from pandas import DataFrame
-
 import talib.abstract as ta
 
 '''
@@ -34,7 +34,6 @@ import talib.abstract as ta
      - Then it is known as a bearish ADX crossover or sell signal.
 '''
 
-
 class AverageDirectionalMovementIndex(BaseStrategy):
 
     minimal_roi = {
@@ -43,8 +42,6 @@ class AverageDirectionalMovementIndex(BaseStrategy):
         "134": 0.088,
         "382": 0.056
     }
-
-    startup_candle_count: int = 14
 
     buy_adx = IntParameter(15, 35, default=32, space="buy")
     buy_adx_shift = IntParameter(15, 35, default=27, space="buy")
@@ -66,6 +63,8 @@ class AverageDirectionalMovementIndex(BaseStrategy):
                           ]
 
         self.add_conditions(dataframe, buy_conditions, 'buy')
+        self.log_trends(dataframe, metadata, 'buy')
+
         return dataframe
 
     def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
@@ -74,4 +73,6 @@ class AverageDirectionalMovementIndex(BaseStrategy):
                            ]
 
         self.add_conditions(dataframe, sell_conditions, 'sell')
+        self.log_trends(dataframe, metadata, 'sell')
+
         return dataframe

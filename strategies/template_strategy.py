@@ -23,15 +23,17 @@ class TemplateStrategy(BaseStrategy):
     #
 
     def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-        buy_conditions = []
+        conditions = []
 
-        self.add_conditions(dataframe, buy_conditions, 'buy')
+        self.add_conditions(dataframe, conditions, 'buy')
+        self.log_trends(dataframe, metadata, 'buy')
         return dataframe
 
     def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-        sell_conditions = []
+        conditions = []
 
-        self.add_conditions(dataframe, sell_conditions, 'sell')
+        self.add_conditions(dataframe, conditions, 'sell')
+        self.log_trends(dataframe, metadata, 'sell')
         return dataframe
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:

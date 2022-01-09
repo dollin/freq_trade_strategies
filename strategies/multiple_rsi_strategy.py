@@ -1,42 +1,18 @@
-import numpy as np
-import pandas as pd
-from functools import reduce
-from pandas import DataFrame
+import sys
 
-from freqtrade.strategy import (BooleanParameter, CategoricalParameter, DecimalParameter, IStrategy, IntParameter)
+from pathlib import Path
 
-import talib.abstract as ta
-import freqtrade.vendor.qtpylib.indicators as qtpylib
+sys.path.append(str(Path(__file__).parent))
 
-from freqtrade.strategy.interface import IStrategy
+from base_strategy import BaseStrategy
 from pandas import DataFrame
 
 import talib.abstract as ta
 from technical.util import resample_to_interval, resampled_merge
+import freqtrade.vendor.qtpylib.indicators as qtpylib
 
 
-class MultipleRsiStrategy(IStrategy):
-    minimal_roi = {"0": 0.284, "60": 100.00}
-    use_sell_signal = True
-    sell_profit_only = True
-    ignore_roi_if_buy_signal = False
-    stoploss = -1.25
-    timeframe = '15m'
-    trailing_stop = False
-    process_only_new_candles = False
-    startup_candle_count: int = 0
-
-    order_types = {
-        'buy': 'market',
-        'sell': 'market',
-        'stoploss': 'market',
-        'stoploss_on_exchange': False
-    }
-
-    order_time_in_force = {
-        'buy': 'gtc',
-        'sell': 'gtc'
-    }
+class MultipleRsiStrategy(BaseStrategy):
 
     def resample_timeframe(self, x: int):
         return int(self.timeframe[:-1]) * x
@@ -45,21 +21,21 @@ class MultipleRsiStrategy(IStrategy):
         return 'resample_{}_rsi'.format(self.resample_timeframe(x))
 
     def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-        conditions = []
+        conditions = [dataframe['sma5'] >= dataframe['sma200'],
+                      dataframe['rsi'] < dataframe[self.resample_key(8)] - 20
+                      ]
 
-        conditions.append(dataframe['sma5'] >= dataframe['sma200'])
-        conditions.append(dataframe['rsi'] < dataframe[self.resample_key(8)] - 20)
-
-        dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
+        self.add_conditions(dataframe, conditions, 'buy')
+        self.log_trends(dataframe, metadata, 'buy')
         return dataframe
 
     def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-        conditions = []
+        conditions = [dataframe['rsi'] > dataframe[self.resample_key(2)],
+                      dataframe['rsi'] > dataframe[self.resample_key(8)]
+                      ]
 
-        conditions.append(dataframe['rsi'] > dataframe[self.resample_key(2)])
-        conditions.append(dataframe['rsi'] > dataframe[self.resample_key(8)])
-
-        dataframe.loc[reduce(lambda x, y: x & y, conditions), 'sell'] = 1
+        self.add_conditions(dataframe, conditions, 'sell')
+        self.log_trends(dataframe, metadata, 'sell')
         return dataframe
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
